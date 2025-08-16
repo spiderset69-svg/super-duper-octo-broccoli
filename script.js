@@ -135,37 +135,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // Enhanced Cursor with Trail
     const cursorOuter = document.querySelector('.cursor-outer');
     const cursorInner = document.querySelector('.cursor-inner');
-    const cursorTrails = document.querySelectorAll('.cursor-trail');
     
     if (cursorOuter) {
         let mouseX = 0, mouseY = 0;
         let outerX = 0, outerY = 0;
-        let tickerId = null; // Store ticker ID for cleanup
         
         window.addEventListener('mousemove', e => {
             mouseX = e.clientX;
             mouseY = e.clientY;
         });
         
-        tickerId = gsap.ticker.add(() => {
+        gsap.ticker.add(() => {
             outerX += (mouseX - outerX) * 0.1;
             outerY += (mouseY - outerY) * 0.1;
             
             gsap.set(cursorOuter, { x: outerX, y: outerY });
             gsap.set(cursorInner, { x: mouseX, y: mouseY });
-            gsap.set(cursorTrails, { x: mouseX, y: mouseY });
         });
-        
-        // Cleanup function for cursor ticker
-        function cleanupCursor() {
-            if (tickerId) {
-                gsap.ticker.remove(tickerId);
-                tickerId = null;
-            }
-        }
-        
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', cleanupCursor);
     }
     
     // Sticky Header Scroll Effect
@@ -179,6 +165,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Awwwards-Level Section Reveal Animation
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('revealed');
+            }
+        });
+    }, observerOptions);
+    
+    // Observe all sections for reveal animation
+    document.querySelectorAll('section').forEach(section => {
+        section.classList.add('section-reveal');
+        sectionObserver.observe(section);
+    });
     
     // Enhanced Contact Form Logic with Validation
     const contactForm = document.getElementById('contact-form');
