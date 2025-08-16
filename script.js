@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         function updateWaves(progress) {
+            if (!wavePathLight || !wavePathDark) return; // Safety check
             const time = Date.now() / 1200; 
 
             // --- Unified Tsunami Wave Parameters ---
@@ -149,13 +150,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Sticky Header Scroll Effect
     const header = document.querySelector('.glass-header');
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 0) {
-            header.classList.add('scrolled');
-        } else {
-            header.classList.remove('scrolled');
-        }
-    });
+    if (header) {
+        window.addEventListener('scroll', () => {
+            header.classList.toggle('scrolled', window.scrollY > 0);
+        });
+    }
     
     // Enhanced Contact Form Logic with Validation
     const contactForm = document.getElementById('contact-form');
@@ -185,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
         preferredDateInput.min = `${yyyy}-${mm}-${dd}`;
     }
 
-    contactForm.addEventListener('submit', function(e) {
+    contactForm?.addEventListener('submit', function(e) {
         e.preventDefault();
         
         // Validate form
@@ -252,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const phoneInput = document.getElementById('phone');
     const emailInput = document.getElementById('email');
     
-    nameInput.addEventListener('input', () => {
+    nameInput?.addEventListener('input', () => {
         if (nameInput.value.trim()) {
             nameInput.classList.add('valid');
             nameInput.classList.remove('invalid');
@@ -263,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    phoneInput.addEventListener('input', () => {
+    phoneInput?.addEventListener('input', () => {
         const normalized = normalizePakistanMobile(phoneInput.value);
         if (normalized) {
             phoneInput.classList.add('valid');
@@ -272,10 +271,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (err) err.classList.remove('show-error');
         } else {
             phoneInput.classList.remove('valid');
+            phoneInput.classList.add('invalid');
         }
     });
     
-    emailInput.addEventListener('input', () => {
+    emailInput?.addEventListener('input', () => {
         if (!emailInput.value.trim() || /\S+@\S+\.\S+/.test(emailInput.value)) {
             emailInput.classList.remove('invalid');
             if (emailInput.value.trim()) emailInput.classList.add('valid');
@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Copy Button Logic
     const copyButton = document.getElementById('copyButton');
-    copyButton.addEventListener('click', async function() {
+    copyButton?.addEventListener('click', async function() {
         const whatsappMessage = document.getElementById('whatsappMessage');
         try {
             if (navigator.clipboard && window.isSecureContext) {
@@ -304,12 +304,14 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => { copyButton.textContent = 'Copy Message'; }, 2000);
     });
     
-    document.getElementById('year').textContent = new Date().getFullYear();
+    const yearEl = document.getElementById('year');
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
     
     // Three.js Background
     let scene, camera, renderer, particles;
     function initThree() {
         const container = document.getElementById('three-bg');
+        if (!container) return; // Abort if container not found
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -373,19 +375,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const createChatLi = (message, className) => {
         const chatLi = document.createElement("li");
         chatLi.classList.add("chat", className);
-        let chatContent = '';
+
         if (className === "outgoing") {
-            chatContent = `<p>${message}</p>`;
+            // Use textContent to avoid XSS from user-supplied message
+            const p = document.createElement('p');
+            p.textContent = message;
+            chatLi.appendChild(p);
         } else {
-            // For incoming messages, always include the icon
-            chatContent = `<span class="icon"><i class="fas fa-robot"></i></span>`;
+            chatLi.innerHTML = `<span class="icon"><i class="fas fa-robot"></i></span>`;
             if (message === "thinking") {
-                chatContent += `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+                chatLi.innerHTML += `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
             } else {
-                chatContent += `<p>${message}</p>`;
+                const p = document.createElement('p');
+                p.innerHTML = message; // Response text can contain safe HTML links
+                chatLi.appendChild(p);
             }
         }
-        chatLi.innerHTML = chatContent;
+
         gsap.from(chatLi, { opacity: 0, y: 20, duration: 0.5, ease: 'power3.out' });
         return chatLi;
     }
@@ -483,7 +489,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Theme Toggler
     const themeToggler = document.getElementById('theme-toggler');
-    themeToggler.addEventListener('click', () => {
+    themeToggler?.addEventListener('click', () => {
         if (document.startViewTransition) {
             document.startViewTransition(() => {
                 document.documentElement.classList.toggle('dark');
