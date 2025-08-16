@@ -127,10 +127,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Enhanced Cursor with Trail
+    // Enhanced Cursor - Simplified without trail
     const cursorOuter = document.querySelector('.cursor-outer');
     const cursorInner = document.querySelector('.cursor-inner');
-    const cursorTrails = document.querySelectorAll('.cursor-trail');
     
     if (cursorOuter) {
         let mouseX = 0, mouseY = 0;
@@ -147,11 +146,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             gsap.set(cursorOuter, { x: outerX, y: outerY });
             gsap.set(cursorInner, { x: mouseX, y: mouseY });
-            gsap.set(cursorTrails, { x: mouseX, y: mouseY });
         });
     }
     
-    // Sticky Header Scroll Effect
+    // Enhanced Sticky Header Scroll Effect
     const header = document.querySelector('.glass-header');
     window.addEventListener('scroll', () => {
         if (window.scrollY > 0) {
@@ -159,6 +157,27 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             header.classList.remove('scrolled');
         }
+    });
+
+    // Awwwards-level Section Transition Animation
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -100px 0px'
+    };
+
+    const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('revealed');
+            }
+        });
+    }, observerOptions);
+
+    // Observe all sections after hero for reveal animation
+    const sectionsToReveal = document.querySelectorAll('section:not(.hero-section)');
+    sectionsToReveal.forEach(section => {
+        section.classList.add('section-reveal');
+        sectionObserver.observe(section);
     });
     
     // Enhanced Contact Form Logic with Validation
@@ -398,18 +417,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const createChatLi = (message, className) => {
         const chatLi = document.createElement("li");
         chatLi.classList.add("chat", className);
-        let chatContent = '';
-        if (className === "outgoing") {
-            chatContent = `<p>${message}</p>`;
-        } else {
-            // For incoming messages, always include the icon
-            chatContent = `<span class="icon"><i class="fas fa-robot"></i></span>`;
-            if (message === "thinking") {
-                chatContent += `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
-            } else {
-                chatContent += `<p>${message}</p>`;
-            }
-        }
         // Use textContent for security, then add HTML elements safely
         if (className === "outgoing") {
             const p = document.createElement('p');
