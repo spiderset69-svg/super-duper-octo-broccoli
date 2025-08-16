@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const wavePathLight = document.getElementById('wave-path-light');
     const wavePathDark = document.getElementById('wave-path-dark');
 
-    if (loaderWrapper && numberElement) {
+    if (loaderWrapper && numberElement && numberFluidLightElement && numberFluidDarkElement && wavePathLight && wavePathDark) {
         let animationFrameId;
         let startTime = null;
         const duration = 2500; // 2.5 seconds for the animation
@@ -98,30 +98,39 @@ document.addEventListener('DOMContentLoaded', function() {
     // GSAP Animations
     gsap.registerPlugin(ScrollTrigger);
     
-    gsap.from('.hero-content h1', { duration: 1, y: 50, opacity: 0, ease: 'power3.out', delay: 0.5 });
-    gsap.from('.hero-content p', { duration: 1, y: 50, opacity: 0, ease: 'power3.out', delay: 0.8 });
-    gsap.fromTo('.hero-content .btn-primary, .hero-content .btn-secondary', { y: 50, opacity: 0 }, { duration: 1, y: 0, opacity: 1, ease: 'power3.out', delay: 1.1, stagger: 0.2 });
+    const heroContent = document.querySelector('.hero-content');
+    if (heroContent) {
+        gsap.from('.hero-content h1', { duration: 1, y: 50, opacity: 0, ease: 'power3.out', delay: 0.5 });
+        gsap.from('.hero-content p', { duration: 1, y: 50, opacity: 0, ease: 'power3.out', delay: 0.8 });
+        gsap.fromTo('.hero-content .btn-primary, .hero-content .btn-secondary', { y: 50, opacity: 0 }, { duration: 1, y: 0, opacity: 1, ease: 'power3.out', delay: 1.1, stagger: 0.2 });
+    }
     
-    gsap.utils.toArray('.section-title').forEach(title => {
-        gsap.to(title, {
-            opacity: 1,
-            y: 0,
-            duration: 0.8,
-            ease: 'power2.out',
-            scrollTrigger: { trigger: title, start: 'top 85%' }
+    const sectionTitles = document.querySelectorAll('.section-title');
+    if (sectionTitles.length > 0) {
+        gsap.utils.toArray('.section-title').forEach(title => {
+            gsap.to(title, {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                ease: 'power2.out',
+                scrollTrigger: { trigger: title, start: 'top 85%' }
+            });
         });
-    });
+    }
     
-    gsap.utils.toArray('.fade-in').forEach(elem => {
-        gsap.to(elem, {
-            opacity: 1,
-            y: 0,
-            duration: 1,
-            stagger: 0.1,
-            ease: 'power3.out',
-            scrollTrigger: { trigger: elem, start: 'top 85%' }
+    const fadeInElements = document.querySelectorAll('.fade-in');
+    if (fadeInElements.length > 0) {
+        gsap.utils.toArray('.fade-in').forEach(elem => {
+            gsap.to(elem, {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                stagger: 0.1,
+                ease: 'power3.out',
+                scrollTrigger: { trigger: elem, start: 'top 85%' }
+            });
         });
-    });
+    }
     
     // Enhanced Cursor with Trail
     const cursorOuter = document.querySelector('.cursor-outer');
@@ -131,13 +140,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (cursorOuter) {
         let mouseX = 0, mouseY = 0;
         let outerX = 0, outerY = 0;
+        let tickerId = null; // Store ticker ID for cleanup
         
         window.addEventListener('mousemove', e => {
             mouseX = e.clientX;
             mouseY = e.clientY;
         });
         
-        gsap.ticker.add(() => {
+        tickerId = gsap.ticker.add(() => {
             outerX += (mouseX - outerX) * 0.1;
             outerY += (mouseY - outerY) * 0.1;
             
@@ -145,17 +155,30 @@ document.addEventListener('DOMContentLoaded', function() {
             gsap.set(cursorInner, { x: mouseX, y: mouseY });
             gsap.set(cursorTrails, { x: mouseX, y: mouseY });
         });
+        
+        // Cleanup function for cursor ticker
+        function cleanupCursor() {
+            if (tickerId) {
+                gsap.ticker.remove(tickerId);
+                tickerId = null;
+            }
+        }
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', cleanupCursor);
     }
     
     // Sticky Header Scroll Effect
     const header = document.querySelector('.glass-header');
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 0) {
-            header.classList.add('scrolled');
-        } else {
-            header.classList.remove('scrolled');
-        }
-    });
+    if (header) {
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 0) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+    }
     
     // Enhanced Contact Form Logic with Validation
     const contactForm = document.getElementById('contact-form');
@@ -185,131 +208,181 @@ document.addEventListener('DOMContentLoaded', function() {
         preferredDateInput.min = `${yyyy}-${mm}-${dd}`;
     }
 
-    contactForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // Validate form
-        let isValid = true;
-        const name = document.getElementById('name');
-        const phone = document.getElementById('phone');
-        const email = document.getElementById('email');
-        const nameError = document.getElementById('name-error');
-        const phoneError = document.getElementById('phone-error');
-        const emailError = document.getElementById('email-error');
-        
-        if (!name.value.trim()) {
-            name.classList.add('invalid');
-            if (nameError) nameError.classList.add('show-error');
-            isValid = false;
-        } else {
-            name.classList.remove('invalid');
-            name.classList.add('valid');
-            if (nameError) nameError.classList.remove('show-error');
-        }
-        
-        const normalizedPhone = normalizePakistanMobile(phone.value);
-        if (!normalizedPhone) {
-            phone.classList.add('invalid');
-            if (phoneError) phoneError.classList.add('show-error');
-            isValid = false;
-        } else {
-            phone.classList.remove('invalid');
-            phone.classList.add('valid');
-            if (phoneError) phoneError.classList.remove('show-error');
-        }
-        
-        if (email.value.trim() && !/\S+@\S+\.\S+/.test(email.value)) {
-            email.classList.add('invalid');
-            if (emailError) emailError.classList.add('show-error');
-            isValid = false;
-        } else {
-            email.classList.remove('invalid');
-            if (email.value.trim()) email.classList.add('valid');
-            if (emailError) emailError.classList.remove('show-error');
-        }
-        
-        if (!isValid) return;
-        
-        // Generate message
-        const selectedServices = Array.from(document.querySelectorAll('.form-checkbox:checked')).map(cb => cb.value);
-        let servicesText = selectedServices.length > 0 ? `I am interested in the following services: ${selectedServices.join(', ')}.` : "I'm interested in learning more about Hijama.";
-        const preferredDate = preferredDateInput && preferredDateInput.value ? `\nPreferred date: ${preferredDateInput.value}` : '';
-        const additionalMessage = document.getElementById('message').value.trim() ? `\nAdditional message: ${document.getElementById('message').value.trim()}` : '';
-        const emailText = email.value.trim() ? `\nMy email is ${email.value}.` : '';
-        
-        const message = `Assalam-o-Alaikum Sobia,\n\nMy name is ${name.value}.\nMy phone number is ${phone.value}.${emailText}\n\n${servicesText}${preferredDate}${additionalMessage}\n\nPlease let me know about your availability for a session.\n\nJazakAllah Khair.`;
-        
-        document.getElementById('whatsappMessage').value = message;
-        const messageOutput = document.getElementById('messageOutput');
-        messageOutput.classList.remove('hidden');
-        messageOutput.scrollIntoView({ behavior: 'smooth' });
-        const whatsappNumber = '923170122099'; // wa.me expects international format without + or leading zeros
-        document.getElementById('whatsappLink').href = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-    });
+    if (contactForm) {
+        contactForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate form
+            let isValid = true;
+            const name = document.getElementById('name');
+            const phone = document.getElementById('phone');
+            const email = document.getElementById('email');
+            const nameError = document.getElementById('name-error');
+            const phoneError = document.getElementById('phone-error');
+            const emailError = document.getElementById('email-error');
+            
+            // Check if required elements exist
+            if (!name || !phone || !email) {
+                console.error('Required form elements not found');
+                return;
+            }
+            
+            if (!name.value.trim()) {
+                name.classList.add('invalid');
+                if (nameError) nameError.classList.add('show-error');
+                isValid = false;
+            } else {
+                name.classList.remove('invalid');
+                name.classList.add('valid');
+                if (nameError) nameError.classList.remove('show-error');
+            }
+            
+            const normalizedPhone = normalizePakistanMobile(phone.value);
+            if (!normalizedPhone) {
+                phone.classList.add('invalid');
+                if (phoneError) phoneError.classList.add('show-error');
+                isValid = false;
+            } else {
+                phone.classList.remove('invalid');
+                phone.classList.add('valid');
+                if (phoneError) phoneError.classList.remove('show-error');
+            }
+            
+            if (email.value.trim() && !/\S+@\S+\.\S+/.test(email.value)) {
+                email.classList.add('invalid');
+                if (emailError) emailError.classList.add('show-error');
+                isValid = false;
+            } else {
+                email.classList.remove('invalid');
+                if (email.value.trim()) email.classList.add('valid');
+                if (emailError) emailError.classList.remove('show-error');
+            }
+            
+            if (!isValid) return;
+            
+            // Generate message
+            const selectedServices = Array.from(document.querySelectorAll('.form-checkbox:checked')).map(cb => cb.value);
+            let servicesText = selectedServices.length > 0 ? `I am interested in the following services: ${selectedServices.join(', ')}.` : "I'm interested in learning more about Hijama.";
+            const preferredDate = preferredDateInput && preferredDateInput.value ? `\nPreferred date: ${preferredDateInput.value}` : '';
+            const additionalMessage = document.getElementById('message')?.value.trim() ? `\nAdditional message: ${document.getElementById('message').value.trim()}` : '';
+            const emailText = email.value.trim() ? `\nMy email is ${email.value}.` : '';
+            
+            const message = `Assalam-o-Alaikum Sobia,\n\nMy name is ${name.value}.\nMy phone number is ${phone.value}.${emailText}\n\n${servicesText}${preferredDate}${additionalMessage}\n\nPlease let me know about your availability for a session.\n\nJazakAllah Khair.`;
+            
+            const whatsappMessageElement = document.getElementById('whatsappMessage');
+            const messageOutput = document.getElementById('messageOutput');
+            const whatsappLink = document.getElementById('whatsappLink');
+            
+            if (whatsappMessageElement) {
+                whatsappMessageElement.value = message;
+            }
+            
+            if (messageOutput) {
+                messageOutput.classList.remove('hidden');
+                messageOutput.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            const whatsappNumber = '923170122099'; // wa.me expects international format without + or leading zeros
+            if (whatsappLink) {
+                whatsappLink.href = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+            }
+        });
+    }
     
     // Real-time validation
     const nameInput = document.getElementById('name');
     const phoneInput = document.getElementById('phone');
     const emailInput = document.getElementById('email');
     
-    nameInput.addEventListener('input', () => {
-        if (nameInput.value.trim()) {
-            nameInput.classList.add('valid');
-            nameInput.classList.remove('invalid');
-            const err = document.getElementById('name-error');
-            if (err) err.classList.remove('show-error');
-        } else {
-            nameInput.classList.remove('valid');
-        }
-    });
+    if (nameInput) {
+        nameInput.addEventListener('input', () => {
+            if (nameInput.value.trim()) {
+                nameInput.classList.add('valid');
+                nameInput.classList.remove('invalid');
+                const err = document.getElementById('name-error');
+                if (err) err.classList.remove('show-error');
+            } else {
+                nameInput.classList.remove('valid');
+            }
+        });
+    }
     
-    phoneInput.addEventListener('input', () => {
-        const normalized = normalizePakistanMobile(phoneInput.value);
-        if (normalized) {
-            phoneInput.classList.add('valid');
-            phoneInput.classList.remove('invalid');
-            const err = document.getElementById('phone-error');
-            if (err) err.classList.remove('show-error');
-        } else {
-            phoneInput.classList.remove('valid');
-        }
-    });
+    if (phoneInput) {
+        phoneInput.addEventListener('input', () => {
+            const normalized = normalizePakistanMobile(phoneInput.value);
+            if (normalized) {
+                phoneInput.classList.add('valid');
+                phoneInput.classList.remove('invalid');
+                const err = document.getElementById('phone-error');
+                if (err) err.classList.remove('show-error');
+            } else {
+                phoneInput.classList.remove('valid');
+            }
+        });
+    }
     
-    emailInput.addEventListener('input', () => {
-        if (!emailInput.value.trim() || /\S+@\S+\.\S+/.test(emailInput.value)) {
-            emailInput.classList.remove('invalid');
-            if (emailInput.value.trim()) emailInput.classList.add('valid');
-            const err = document.getElementById('email-error');
-            if (err) err.classList.remove('show-error');
-        } else {
-            emailInput.classList.remove('valid');
-        }
-    });
+    if (emailInput) {
+        emailInput.addEventListener('input', () => {
+            if (!emailInput.value.trim() || /\S+@\S+\.\S+/.test(emailInput.value)) {
+                emailInput.classList.remove('invalid');
+                if (emailInput.value.trim()) emailInput.classList.add('valid');
+                const err = document.getElementById('email-error');
+                if (err) err.classList.remove('show-error');
+            } else {
+                emailInput.classList.remove('valid');
+            }
+        });
+    }
     
     // Copy Button Logic
     const copyButton = document.getElementById('copyButton');
-    copyButton.addEventListener('click', async function() {
-        const whatsappMessage = document.getElementById('whatsappMessage');
-        try {
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(whatsappMessage.value);
-            } else {
-                whatsappMessage.select();
-                document.execCommand('copy');
+    if (copyButton) {
+        copyButton.addEventListener('click', async function() {
+            const whatsappMessage = document.getElementById('whatsappMessage');
+            if (!whatsappMessage) {
+                console.error('WhatsApp message element not found');
+                return;
             }
-            copyButton.textContent = 'Copied!';
-        } catch (e) {
-            copyButton.textContent = 'Copy failed';
-        }
-        setTimeout(() => { copyButton.textContent = 'Copy Message'; }, 2000);
-    });
+            
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(whatsappMessage.value);
+                    copyButton.textContent = 'Copied!';
+                } else {
+                    whatsappMessage.select();
+                    const success = document.execCommand('copy');
+                    if (success) {
+                        copyButton.textContent = 'Copied!';
+                    } else {
+                        throw new Error('Copy command failed');
+                    }
+                }
+            } catch (e) {
+                console.error('Copy failed:', e);
+                copyButton.textContent = 'Copy failed';
+            }
+            
+            setTimeout(() => { 
+                if (copyButton) {
+                    copyButton.textContent = 'Copy Message'; 
+                }
+            }, 2000);
+        });
+    }
     
-    document.getElementById('year').textContent = new Date().getFullYear();
+    const yearElement = document.getElementById('year');
+    if (yearElement) {
+        yearElement.textContent = new Date().getFullYear();
+    }
     
     // Three.js Background
     let scene, camera, renderer, particles;
+    let animationId = null; // Add animation ID for cleanup
+    
     function initThree() {
         const container = document.getElementById('three-bg');
+        if (!container) return; // Guard clause for missing container
+        
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -337,17 +410,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     function animate() {
-        requestAnimationFrame(animate);
-        if (renderer) {
-            if (particles) {
-                particles.rotation.y += 0.00005;
-                if(mouseX_three > 0) {
-                    particles.rotation.y += (mouseX_three - window.innerWidth / 2) * 0.0000005;
-                    particles.rotation.x += -(mouseY_three - window.innerHeight / 2) * 0.0000005;
-                }
+        if (!renderer || !scene || !camera) return; // Guard clause
+        
+        animationId = requestAnimationFrame(animate);
+        
+        if (particles) {
+            particles.rotation.y += 0.00005;
+            if(mouseX_three > 0) {
+                particles.rotation.y += (mouseX_three - window.innerWidth / 2) * 0.0000005;
+                particles.rotation.x += -(mouseY_three - window.innerHeight / 2) * 0.0000005;
             }
-            renderer.render(scene, camera);
         }
+        renderer.render(scene, camera);
     }
     
     function onWindowResize() {
@@ -358,9 +432,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Cleanup function for Three.js resources
+    function cleanupThree() {
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        if (renderer) {
+            renderer.dispose();
+            renderer = null;
+        }
+        if (scene) {
+            scene.clear();
+            scene = null;
+        }
+        if (camera) {
+            camera = null;
+        }
+        if (particles) {
+            particles.geometry.dispose();
+            particles.material.dispose();
+            particles = null;
+        }
+    }
+    
     window.addEventListener('resize', onWindowResize, false);
-    initThree();
-    animate();
+    
+    // Initialize Three.js only if container exists
+    if (document.getElementById('three-bg')) {
+        initThree();
+        animate();
+    }
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', cleanupThree);
 
     // --- CHATBOT LOGIC (REFACTORED) ---
     const chatbotToggler = document.querySelector(".chatbot-toggler");
@@ -370,19 +475,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatbox = document.querySelector(".chatbox");
     const chatOptionsContainer = document.querySelector(".chat-options");
 
+    // Helper function to sanitize HTML content
+    function sanitizeHTML(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     const createChatLi = (message, className) => {
         const chatLi = document.createElement("li");
         chatLi.classList.add("chat", className);
         let chatContent = '';
         if (className === "outgoing") {
-            chatContent = `<p>${message}</p>`;
+            chatContent = `<p>${sanitizeHTML(message)}</p>`;
         } else {
             // For incoming messages, always include the icon
             chatContent = `<span class="icon"><i class="fas fa-robot"></i></span>`;
             if (message === "thinking") {
                 chatContent += `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
             } else {
-                chatContent += `<p>${message}</p>`;
+                chatContent += `<p>${sanitizeHTML(message)}</p>`;
             }
         }
         chatLi.innerHTML = chatContent;
@@ -399,13 +511,15 @@ document.addEventListener('DOMContentLoaded', function() {
     ];
 
     const displayInitialOptions = () => {
-        chatOptionsContainer.innerHTML = "";
-        initialOptions.forEach(option => {
-            const button = document.createElement("button");
-            button.textContent = option.text;
-            button.addEventListener("click", () => handleChat(option.query, option.text));
-            chatOptionsContainer.appendChild(button);
-        });
+        if (chatOptionsContainer) {
+            chatOptionsContainer.innerHTML = "";
+            initialOptions.forEach(option => {
+                const button = document.createElement("button");
+                button.textContent = option.text;
+                button.addEventListener("click", () => handleChat(option.query, option.text));
+                chatOptionsContainer.appendChild(button);
+            });
+        }
     }
 
     const generateResponse = (thinkingLi, userMessage) => {
@@ -428,8 +542,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Replace the thinking indicator with the actual response
-        thinkingLi.innerHTML = `<span class="icon"><i class="fas fa-robot"></i></span><p>${response}</p>`;
-        chatbox.scrollTo(0, chatbox.scrollHeight);
+        if (thinkingLi) {
+            thinkingLi.innerHTML = `<span class="icon"><i class="fas fa-robot"></i></span><p>${response}</p>`;
+            chatbox.scrollTo(0, chatbox.scrollHeight);
+        }
     }
 
     const handleChat = (query, displayText) => {
@@ -437,43 +553,62 @@ document.addEventListener('DOMContentLoaded', function() {
         if(!userMessage) return;
 
         const messageToDisplay = displayText || userMessage;
-        chatbox.appendChild(createChatLi(messageToDisplay, "outgoing"));
-        chatbox.scrollTo(0, chatbox.scrollHeight);
-        chatInput.value = "";
-        chatInput.dispatchEvent(new Event('input')); // To update send button visibility
-        chatOptionsContainer.innerHTML = "";
+        if (chatbox) {
+            chatbox.appendChild(createChatLi(messageToDisplay, "outgoing"));
+            chatbox.scrollTo(0, chatbox.scrollHeight);
+        }
+        if (chatInput) {
+            chatInput.value = "";
+            chatInput.dispatchEvent(new Event('input')); // To update send button visibility
+        }
+        if (chatOptionsContainer) {
+            chatOptionsContainer.innerHTML = "";
+        }
 
         setTimeout(() => {
             const thinkingLi = createChatLi("thinking", "incoming");
-            chatbox.appendChild(thinkingLi);
-            chatbox.scrollTo(0, chatbox.scrollHeight);
+            if (chatbox) {
+                chatbox.appendChild(thinkingLi);
+                chatbox.scrollTo(0, chatbox.scrollHeight);
+            }
             generateResponse(thinkingLi, userMessage);
             displayInitialOptions();
         }, 800);
     }
     
-    chatInput.addEventListener("input", () => {
-        sendChatBtn.style.visibility = chatInput.value.trim() ? "visible" : "hidden";
-    });
-
-    sendChatBtn.addEventListener("click", () => handleChat(chatInput.value));
-    chatInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            handleChat(chatInput.value);
-        }
-    });
-
-    chatbotToggler.addEventListener("click", (e) => {
-        e.stopPropagation();
-        document.body.classList.toggle("show-chatbot");
-        document.body.classList.toggle("chatbot-open");
-    });
+    if (sendChatBtn) {
+        sendChatBtn.addEventListener("click", () => handleChat(chatInput.value));
+    }
     
-    chatbot.addEventListener("click", (e) => e.stopPropagation());
+    if (chatInput) {
+        chatInput.addEventListener("input", () => {
+            if (sendChatBtn) {
+                sendChatBtn.style.visibility = chatInput.value.trim() ? "visible" : "hidden";
+            }
+        });
+        
+        chatInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleChat(chatInput.value);
+            }
+        });
+    }
+
+    if (chatbotToggler) {
+        chatbotToggler.addEventListener("click", (e) => {
+            e.stopPropagation();
+            document.body.classList.toggle("show-chatbot");
+            document.body.classList.toggle("chatbot-open");
+        });
+    }
+    
+    if (chatbot) {
+        chatbot.addEventListener("click", (e) => e.stopPropagation());
+    }
 
     document.addEventListener("click", (e) => {
-        if(document.body.classList.contains("show-chatbot") && !chatbot.contains(e.target)) {
+        if(document.body.classList.contains("show-chatbot") && chatbot && !chatbot.contains(e.target)) {
             document.body.classList.remove("show-chatbot");
             document.body.classList.remove("chatbot-open");
         }
@@ -483,73 +618,94 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Theme Toggler
     const themeToggler = document.getElementById('theme-toggler');
-    themeToggler.addEventListener('click', () => {
-        if (document.startViewTransition) {
-            document.startViewTransition(() => {
+    if (themeToggler) {
+        themeToggler.addEventListener('click', () => {
+            if (document.startViewTransition) {
+                document.startViewTransition(() => {
+                    document.documentElement.classList.toggle('dark');
+                });
+            } else {
                 document.documentElement.classList.toggle('dark');
-            });
-        } else {
-            document.documentElement.classList.toggle('dark');
-        }
-    });
+            }
+        });
+    }
 
     // FAQ Accordion
     const faqItems = document.querySelectorAll('.faq-item');
-    faqItems.forEach(item => {
-        const question = item.querySelector('.faq-question');
-        question.addEventListener('click', () => {
-            const currentlyActive = document.querySelector('.faq-item.active');
-            if (currentlyActive && currentlyActive !== item) {
-                currentlyActive.classList.remove('active');
+    if (faqItems.length > 0) {
+        faqItems.forEach(item => {
+            const question = item.querySelector('.faq-question');
+            if (question) {
+                question.addEventListener('click', () => {
+                    const currentlyActive = document.querySelector('.faq-item.active');
+                    if (currentlyActive && currentlyActive !== item) {
+                        currentlyActive.classList.remove('active');
+                    }
+                    item.classList.toggle('active');
+                });
             }
-            item.classList.toggle('active');
         });
-    });
+    }
 
     // Scroll Progress
     const scrollProgress = document.getElementById('scroll-progress');
-    window.addEventListener('scroll', () => {
-        const scrollTop = document.documentElement.scrollTop;
-        const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-        const progress = (scrollTop / scrollHeight) * 100;
-        scrollProgress.style.width = `${progress}%`;
-    });
+    if (scrollProgress) {
+        window.addEventListener('scroll', () => {
+            const scrollTop = document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const progress = (scrollHeight > 0) ? (scrollTop / scrollHeight) * 100 : 0;
+            scrollProgress.style.width = `${Math.min(progress, 100)}%`;
+        });
+    }
 
     // Rough Notation Highlighters
     const highlighters = document.querySelectorAll('.highlighter');
-    highlighters.forEach(el => {
-        const annotation = annotate(el, { type: 'highlight', color: 'rgba(193, 154, 107, 0.3)' });
-        ScrollTrigger.create({
-            trigger: el,
-            start: 'top 80%',
-            onEnter: () => annotation.show()
+    if (highlighters.length > 0) {
+        highlighters.forEach(el => {
+            try {
+                const annotation = annotate(el, { type: 'highlight', color: 'rgba(193, 154, 107, 0.3)' });
+                ScrollTrigger.create({
+                    trigger: el,
+                    start: 'top 80%',
+                    onEnter: () => annotation.show()
+                });
+            } catch (error) {
+                console.warn('Failed to create annotation for element:', el, error);
+            }
         });
-    });
+    }
 
     // Service Selection Animation with subtle bounce
     const serviceOptions = document.querySelectorAll('.service-option');
-    serviceOptions.forEach(option => {
-        const checkbox = option.querySelector('input[type="checkbox"]');
-        checkbox.addEventListener('change', () => {
-            if (checkbox.checked) {
-                option.classList.add('selected');
-                gsap.fromTo(option, { scale: 0.98 }, { scale: 1.03, duration: 0.18, ease: 'power2.out' });
-            } else {
-                option.classList.remove('selected');
-                gsap.to(option, { scale: 1, duration: 0.18, ease: 'power2.out' });
+    if (serviceOptions.length > 0) {
+        serviceOptions.forEach(option => {
+            const checkbox = option.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.addEventListener('change', () => {
+                    if (checkbox.checked) {
+                        option.classList.add('selected');
+                        gsap.fromTo(option, { scale: 0.98 }, { scale: 1.03, duration: 0.18, ease: 'power2.out' });
+                    } else {
+                        option.classList.remove('selected');
+                        gsap.to(option, { scale: 1, duration: 0.18, ease: 'power2.out' });
+                    }
+                });
             }
         });
-    });
+    }
 
     // Contact form staggered reveal
-    gsap.from('#contact-form > *', {
-        opacity: 0,
-        y: 15,
-        duration: 0.6,
-        stagger: 0.08,
-        ease: 'power3.out',
-        scrollTrigger: { trigger: '#contact-form', start: 'top 85%' }
-    });
+    const contactForm = document.getElementById('contact-form');
+    if (contactForm) {
+        gsap.from('#contact-form > *', {
+            opacity: 0,
+            y: 15,
+            duration: 0.6,
+            stagger: 0.08,
+            ease: 'power3.out',
+            scrollTrigger: { trigger: '#contact-form', start: 'top 85%' }
+        });
+    }
 });
 
 // Magic UI Headline Animation
@@ -557,6 +713,7 @@ const headlineElement = document.getElementById('magic-ui-headline');
 if (headlineElement) {
     const texts = ["Revitalize Your Health", "Naturally", "Experience Healing", "With Sobia's Hijama Therapy"];
     let textIndex = 0;
+    let headlineInterval = null; // Store interval ID for cleanup
 
     function animateHeadlineText() {
         gsap.to(headlineElement, {
@@ -575,91 +732,116 @@ if (headlineElement) {
     textIndex = (textIndex + 1) % texts.length;
     gsap.from(headlineElement, { opacity: 0, y: 50, duration: 1, ease: 'power3.out', delay: 0.5 });
 
-    setInterval(animateHeadlineText, 4000); // Change text every 4 seconds
+    headlineInterval = setInterval(animateHeadlineText, 4000); // Change text every 4 seconds
+    
+    // Cleanup function
+    function cleanupHeadline() {
+        if (headlineInterval) {
+            clearInterval(headlineInterval);
+            headlineInterval = null;
+        }
+    }
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', cleanupHeadline);
 }
 
 // Service Card 3D Tilt Animation
 const serviceCards = document.querySelectorAll('.service-card');
-serviceCards.forEach(card => {
-    card.addEventListener('mouseenter', () => {
-        gsap.to(card, {
-            rotationX: -5, 
-            rotationY: 5,  
-            scale: 1.03,   
-            boxShadow: '0 20px 40px -10px rgba(0,0,0,0.25)',
-            duration: 0.3,
-            ease: 'power2.out'
+if (serviceCards.length > 0) {
+    serviceCards.forEach(card => {
+        card.addEventListener('mouseenter', () => {
+            gsap.to(card, {
+                rotationX: -5, 
+                rotationY: 5,  
+                scale: 1.03,   
+                boxShadow: '0 20px 40px -10px rgba(0,0,0,0.25)',
+                duration: 0.3,
+                ease: 'power2.out'
+            });
         });
-    });
 
-    card.addEventListener('mouseleave', () => {
-        gsap.to(card, {
-            rotationX: 0,
-            rotationY: 0,
-            scale: 1,
-            boxShadow: '0 10px 30px -15px rgba(0,0,0,0.1)',
-            duration: 0.3,
-            ease: 'power2.out'
+        card.addEventListener('mouseleave', () => {
+            gsap.to(card, {
+                rotationX: 0,
+                rotationY: 0,
+                scale: 1,
+                boxShadow: '0 10px 30px -15px rgba(0,0,0,0.1)',
+                duration: 0.3,
+                ease: 'power2.out'
+            });
         });
     });
-});
+}
 
 // --- START: IMPROVED TESTIMONIAL CAROUSEL LOGIC ---
 const carousel = document.getElementById('testimonial-carousel');
 const prevBtn = document.getElementById('prev-testimonial');
 const nextBtn = document.getElementById('next-testimonial');
-const testimonialItems = Array.from(carousel.children);
 
-let currentIndex = 0;
-let visibleCards = 1;
-let maxIndex = testimonialItems.length - 1;
+// Only initialize carousel if all required elements exist
+if (carousel && prevBtn && nextBtn) {
+    const testimonialItems = Array.from(carousel.children);
 
-function setupCarousel() {
-    if (window.innerWidth >= 1024) { // Tailwind 'lg' breakpoint
-        visibleCards = 3;
-    } else if (window.innerWidth >= 768) { // Tailwind 'md' breakpoint
-        visibleCards = 2;
-    } else {
-        visibleCards = 1;
-    }
-    maxIndex = Math.max(0, testimonialItems.length - visibleCards);
-    
-    if (currentIndex > maxIndex) {
-        currentIndex = maxIndex;
-    }
-    updateCarouselPosition();
-}
+    let currentIndex = 0;
+    let visibleCards = 1;
+    let maxIndex = Math.max(0, testimonialItems.length - 1);
 
-function updateCarouselPosition() {
-    let scrollAmount = 0;
-    if (testimonialItems.length > 0 && currentIndex < testimonialItems.length) {
-         scrollAmount = testimonialItems[currentIndex].offsetLeft;
-    }
-    
-    gsap.to(carousel, {
-        x: -scrollAmount,
-        duration: 0.6,
-        ease: 'power3.inOut'
-    });
-
-    prevBtn.disabled = currentIndex === 0;
-    nextBtn.disabled = currentIndex === maxIndex;
-}
-
-nextBtn.addEventListener('click', () => {
-    if (currentIndex < maxIndex) {
-        currentIndex++;
+    function setupCarousel() {
+        if (window.innerWidth >= 1024) { // Tailwind 'lg' breakpoint
+            visibleCards = 3;
+        } else if (window.innerWidth >= 768) { // Tailwind 'md' breakpoint
+            visibleCards = 2;
+        } else {
+            visibleCards = 1;
+        }
+        maxIndex = Math.max(0, testimonialItems.length - visibleCards);
+        
+        if (currentIndex > maxIndex) {
+            currentIndex = maxIndex;
+        }
         updateCarouselPosition();
     }
-});
 
-prevBtn.addEventListener('click', () => {
-    if (currentIndex > 0) {
-        currentIndex--;
-        updateCarouselPosition();
+    function updateCarouselPosition() {
+        let scrollAmount = 0;
+        if (testimonialItems.length > 0 && currentIndex < testimonialItems.length) {
+             scrollAmount = testimonialItems[currentIndex].offsetLeft;
+        }
+        
+        gsap.to(carousel, {
+            x: -scrollAmount,
+            duration: 0.6,
+            ease: 'power3.inOut'
+        });
+
+        if (prevBtn) {
+            prevBtn.disabled = currentIndex === 0;
+        }
+        if (nextBtn) {
+            nextBtn.disabled = currentIndex === maxIndex;
+        }
     }
-});
 
-window.addEventListener('resize', setupCarousel);
-setupCarousel();
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            if (currentIndex < maxIndex) {
+                currentIndex++;
+                updateCarouselPosition();
+            }
+        });
+    }
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateCarouselPosition();
+            }
+        });
+    }
+
+    window.addEventListener('resize', setupCarousel);
+    setupCarousel();
+}
 // --- END: IMPROVED TESTIMONIAL CAROUSEL LOGIC ---
