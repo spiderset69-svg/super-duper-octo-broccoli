@@ -1,4 +1,4 @@
-import { annotate } from "https://unpkg.com/rough-notation?module";
+import { annotate } from "https://unpkg.com/rough-notation@0.5.1/lib/rough-notation.esm.js";
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- FLUID WAVE PRELOADER LOGIC ---
@@ -39,7 +39,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 numberFluidDarkElement.textContent = 100;
                 updateWaves(1);
                 
-                // Fade out the preloader after animation completes
+                // Cancel animation frame and fade out the preloader
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
                 setTimeout(() => {
                     gsap.to(loaderWrapper, { 
                         opacity: 0, 
@@ -247,17 +251,21 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('whatsappLink').href = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     });
     
-    // Real-time validation
+    // Real-time validation with cached error elements
     const nameInput = document.getElementById('name');
     const phoneInput = document.getElementById('phone');
     const emailInput = document.getElementById('email');
+    
+    // Cache error elements to avoid repeated DOM queries
+    const nameError = document.getElementById('name-error');
+    const phoneError = document.getElementById('phone-error');
+    const emailError = document.getElementById('email-error');
     
     nameInput.addEventListener('input', () => {
         if (nameInput.value.trim()) {
             nameInput.classList.add('valid');
             nameInput.classList.remove('invalid');
-            const err = document.getElementById('name-error');
-            if (err) err.classList.remove('show-error');
+            if (nameError) nameError.classList.remove('show-error');
         } else {
             nameInput.classList.remove('valid');
         }
@@ -268,8 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (normalized) {
             phoneInput.classList.add('valid');
             phoneInput.classList.remove('invalid');
-            const err = document.getElementById('phone-error');
-            if (err) err.classList.remove('show-error');
+            if (phoneError) phoneError.classList.remove('show-error');
         } else {
             phoneInput.classList.remove('valid');
         }
@@ -279,8 +286,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!emailInput.value.trim() || /\S+@\S+\.\S+/.test(emailInput.value)) {
             emailInput.classList.remove('invalid');
             if (emailInput.value.trim()) emailInput.classList.add('valid');
-            const err = document.getElementById('email-error');
-            if (err) err.classList.remove('show-error');
+            if (emailError) emailError.classList.remove('show-error');
         } else {
             emailInput.classList.remove('valid');
         }
@@ -293,13 +299,25 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             if (navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(whatsappMessage.value);
+                copyButton.textContent = 'Copied!';
             } else {
+                // Safer fallback: select text and let user copy manually
                 whatsappMessage.select();
-                document.execCommand('copy');
+                whatsappMessage.setSelectionRange(0, 99999); // For mobile devices
+                copyButton.textContent = 'Text selected - Press Ctrl+C to copy';
+                
+                // Try modern approach one more time
+                try {
+                    await navigator.clipboard.writeText(whatsappMessage.value);
+                    copyButton.textContent = 'Copied!';
+                } catch (clipboardError) {
+                    // If clipboard API fails, inform user to copy manually
+                    console.log('Clipboard API failed, text is selected for manual copy');
+                }
             }
-            copyButton.textContent = 'Copied!';
         } catch (e) {
-            copyButton.textContent = 'Copy failed';
+            copyButton.textContent = 'Please copy manually';
+            console.error('Copy operation failed:', e);
         }
         setTimeout(() => { copyButton.textContent = 'Copy Message'; }, 2000);
     });
@@ -329,11 +347,18 @@ document.addEventListener('DOMContentLoaded', function() {
         camera.position.z = 5;
     }
     
-    let mouseX_three = 0;
-    let mouseY_three = 0;
+    // Encapsulate mouse tracking in object to avoid global pollution
+    const mouseTracker = {
+        x: 0,
+        y: 0,
+        update: function(event) {
+            this.x = event.clientX;
+            this.y = event.clientY;
+        }
+    };
+    
     document.addEventListener('mousemove', (event) => {
-        mouseX_three = event.clientX;
-        mouseY_three = event.clientY;
+        mouseTracker.update(event);
     });
     
     function animate() {
@@ -341,9 +366,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (renderer) {
             if (particles) {
                 particles.rotation.y += 0.00005;
-                if(mouseX_three > 0) {
-                    particles.rotation.y += (mouseX_three - window.innerWidth / 2) * 0.0000005;
-                    particles.rotation.x += -(mouseY_three - window.innerHeight / 2) * 0.0000005;
+                if(mouseTracker.x > 0) {
+                    particles.rotation.y += (mouseTracker.x - window.innerWidth / 2) * 0.0000005;
+                    particles.rotation.x += -(mouseTracker.y - window.innerHeight / 2) * 0.0000005;
                 }
             }
             renderer.render(scene, camera);
@@ -385,7 +410,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 chatContent += `<p>${message}</p>`;
             }
         }
-        chatLi.innerHTML = chatContent;
+        // Use textContent for security, then add HTML elements safely
+        if (className === "outgoing") {
+            const p = document.createElement('p');
+            p.textContent = message;
+            chatLi.appendChild(p);
+        } else {
+            const icon = document.createElement('span');
+            icon.className = 'icon';
+            icon.innerHTML = '<i class="fas fa-robot"></i>';
+            chatLi.appendChild(icon);
+            
+            if (message === "thinking") {
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'typing-indicator';
+                typingDiv.innerHTML = '<span></span><span></span><span></span>';
+                chatLi.appendChild(typingDiv);
+            } else {
+                const p = document.createElement('p');
+                p.textContent = message;
+                chatLi.appendChild(p);
+            }
+        }
         gsap.from(chatLi, { opacity: 0, y: 20, duration: 0.5, ease: 'power3.out' });
         return chatLi;
     }
@@ -399,7 +445,10 @@ document.addEventListener('DOMContentLoaded', function() {
     ];
 
     const displayInitialOptions = () => {
-        chatOptionsContainer.innerHTML = "";
+        // Clear container safely
+        while (chatOptionsContainer.firstChild) {
+            chatOptionsContainer.removeChild(chatOptionsContainer.firstChild);
+        }
         initialOptions.forEach(option => {
             const button = document.createElement("button");
             button.textContent = option.text;
@@ -427,8 +476,23 @@ document.addEventListener('DOMContentLoaded', function() {
             response = "Hijama (cupping therapy) is an ancient healing practice that involves placing cups on the skin to create suction. It's known to help with pain, inflammation, blood flow, relaxation, and overall well-being.";
         }
 
-        // Replace the thinking indicator with the actual response
-        thinkingLi.innerHTML = `<span class="icon"><i class="fas fa-robot"></i></span><p>${response}</p>`;
+        // Replace the thinking indicator with the actual response safely
+        while (thinkingLi.firstChild) {
+            thinkingLi.removeChild(thinkingLi.firstChild);
+        }
+        const icon = document.createElement('span');
+        icon.className = 'icon';
+        icon.innerHTML = '<i class="fas fa-robot"></i>';
+        thinkingLi.appendChild(icon);
+        
+        const p = document.createElement('p');
+        // Use innerHTML only for trusted content with links
+        if (response.includes('<a href=')) {
+            p.innerHTML = response;
+        } else {
+            p.textContent = response;
+        }
+        thinkingLi.appendChild(p);
         chatbox.scrollTo(0, chatbox.scrollHeight);
     }
 
@@ -441,7 +505,10 @@ document.addEventListener('DOMContentLoaded', function() {
         chatbox.scrollTo(0, chatbox.scrollHeight);
         chatInput.value = "";
         chatInput.dispatchEvent(new Event('input')); // To update send button visibility
-        chatOptionsContainer.innerHTML = "";
+        // Clear container safely
+        while (chatOptionsContainer.firstChild) {
+            chatOptionsContainer.removeChild(chatOptionsContainer.firstChild);
+        }
 
         setTimeout(() => {
             const thinkingLi = createChatLi("thinking", "incoming");
@@ -578,10 +645,12 @@ if (headlineElement) {
     setInterval(animateHeadlineText, 4000); // Change text every 4 seconds
 }
 
-// Service Card 3D Tilt Animation
+// Service Card 3D Tilt Animation with proper cleanup
 const serviceCards = document.querySelectorAll('.service-card');
+const serviceCardEventListeners = new Map();
+
 serviceCards.forEach(card => {
-    card.addEventListener('mouseenter', () => {
+    const mouseEnterHandler = () => {
         gsap.to(card, {
             rotationX: -5, 
             rotationY: 5,  
@@ -590,9 +659,9 @@ serviceCards.forEach(card => {
             duration: 0.3,
             ease: 'power2.out'
         });
-    });
+    };
 
-    card.addEventListener('mouseleave', () => {
+    const mouseLeaveHandler = () => {
         gsap.to(card, {
             rotationX: 0,
             rotationY: 0,
@@ -601,7 +670,22 @@ serviceCards.forEach(card => {
             duration: 0.3,
             ease: 'power2.out'
         });
+    };
+
+    card.addEventListener('mouseenter', mouseEnterHandler);
+    card.addEventListener('mouseleave', mouseLeaveHandler);
+    
+    // Store handlers for potential cleanup
+    serviceCardEventListeners.set(card, { mouseEnterHandler, mouseLeaveHandler });
+});
+
+// Cleanup function for when page unloads
+window.addEventListener('beforeunload', () => {
+    serviceCardEventListeners.forEach((handlers, card) => {
+        card.removeEventListener('mouseenter', handlers.mouseEnterHandler);
+        card.removeEventListener('mouseleave', handlers.mouseLeaveHandler);
     });
+    serviceCardEventListeners.clear();
 });
 
 // --- START: IMPROVED TESTIMONIAL CAROUSEL LOGIC ---
@@ -632,8 +716,12 @@ function setupCarousel() {
 
 function updateCarouselPosition() {
     let scrollAmount = 0;
-    if (testimonialItems.length > 0 && currentIndex < testimonialItems.length) {
-         scrollAmount = testimonialItems[currentIndex].offsetLeft;
+    if (testimonialItems.length > 0 && currentIndex >= 0 && currentIndex < testimonialItems.length) {
+        // Ensure the element exists and is rendered before accessing offsetLeft
+        const currentItem = testimonialItems[currentIndex];
+        if (currentItem && currentItem.offsetParent !== null) {
+            scrollAmount = currentItem.offsetLeft;
+        }
     }
     
     gsap.to(carousel, {
@@ -646,19 +734,54 @@ function updateCarouselPosition() {
     nextBtn.disabled = currentIndex === maxIndex;
 }
 
-nextBtn.addEventListener('click', () => {
+// Add keyboard navigation support
+const handleNext = () => {
     if (currentIndex < maxIndex) {
         currentIndex++;
         updateCarouselPosition();
     }
-});
+};
 
-prevBtn.addEventListener('click', () => {
+const handlePrev = () => {
     if (currentIndex > 0) {
         currentIndex--;
         updateCarouselPosition();
     }
+};
+
+nextBtn.addEventListener('click', handleNext);
+nextBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handleNext();
+    }
 });
+
+prevBtn.addEventListener('click', handlePrev);
+prevBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handlePrev();
+    }
+});
+
+// Add arrow key navigation when carousel is focused
+if (carousel) {
+    carousel.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            handlePrev();
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            handleNext();
+        }
+    });
+    
+    // Make carousel focusable
+    carousel.setAttribute('tabindex', '0');
+    carousel.setAttribute('role', 'region');
+    carousel.setAttribute('aria-label', 'Testimonials carousel');
+}
 
 window.addEventListener('resize', setupCarousel);
 setupCarousel();
