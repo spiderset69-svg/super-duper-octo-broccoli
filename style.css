@@ -26,10 +26,15 @@
     box-sizing: border-box;
 }
 
-/* Mobile-first cursor handling */
+/* Mobile-first cursor handling - more specific to avoid performance issues */
 @media (hover: hover) and (pointer: fine) {
-    * {
-        cursor: none;
+    body, body * {
+        cursor: none !important;
+    }
+    
+    /* Exception for interactive elements */
+    button, a, input, textarea, select, [role="button"], [tabindex] {
+        cursor: none !important;
     }
 }
 
